@@ -26,7 +26,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Game Settings")]
     public float shuffleAnimDur = 0.75f;
-    public float cardSwapDur = 0.3f;
+    public float cardSwapDur = 0.2f;
 
     [Header("Lifes")]
     public float opponentLifes = 4f;
@@ -233,28 +233,47 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void HandleCardInput(int cardIndex)
+    void HandleCardInput(int keyIndex)
     {
         if (selectedCardIndex == -1)
         {
-            //select 1st card
-            selectedCardIndex = cardIndex;
-            HighlightCard(cardIndex, true);
-            Debug.Log($"Card {cardIndex + 1} selected");
-        }
-        else if (selectedCardIndex == cardIndex)
-        {
-            //same card again - cancel selection
-            HighlightCard(selectedCardIndex, false);
-            selectedCardIndex = -1;
-            Debug.Log("Selection camceled!");
+            //Step 1: Select card
+            selectedCardIndex = keyIndex;
+            HighlightCard(keyIndex, true);
         }
         else
         {
-            //2 different cards - swap
-            HighlightCard(selectedCardIndex, false);
-            StartCoroutine(SwapCards(selectedCardIndex, cardIndex));
-            selectedCardIndex = -1;
+            //Step 2: choose new position
+            int targetSlot = keyIndex;
+
+            if (selectedCardIndex == targetSlot)
+            {
+                //same position = cancel selection
+                HighlightCard(selectedCardIndex, false);
+                selectedCardIndex = -1;
+            }
+            else
+            {
+                //find out which card is in the selected slot
+                int cardAtTarget = -1;
+
+                for (int i = 0; i < 4; i++)
+                {
+                    if (playerPos[i] == targetSlot)
+                    {
+                        cardAtTarget = i;
+                        break;
+                    }
+                }
+
+                if (cardAtTarget != -1)
+                {
+                    //swap selected cards
+                    HighlightCard(selectedCardIndex, false);
+                    StartCoroutine(SwapCards(selectedCardIndex, cardAtTarget));
+                    selectedCardIndex = -1;
+                }
+            }
         }
     }
 
@@ -265,12 +284,12 @@ public class GameManager : MonoBehaviour
         playerPos[index1] = playerPos[index2];
         playerPos[index2] = temp;
 
-        //animate movement
+        //get current + swap positions
         Vector3 pos1 = playerCardObject[index1].transform.position;
         Vector3 pos2 = playerCardObject[index2].transform.position;
 
         float elapsed = 0f;
-
+        //animate movement
         while (elapsed < cardSwapDur)
         {
             elapsed += Time.deltaTime;
