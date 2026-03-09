@@ -32,6 +32,9 @@ public class GameManager : MonoBehaviour
     public float opponentLifes = 4f;
     public float playerLifes = 3f;
 
+    [Header("UI Settings")]
+    public GameObject Restart_btn;
+
     //intern vars
     private List<CardColor> opponentCards = new List<CardColor>();
     private List<CardColor> playerCards = new List<CardColor>();
@@ -44,6 +47,9 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        //hide restart button
+        Restart_btn.gameObject.SetActive(false);
+
         //safe original positions of playerCards
         for (int i = 0; i < 4; i++)
         {
@@ -60,6 +66,8 @@ public class GameManager : MonoBehaviour
 
     void InitializeGame()
     {
+        Restart_btn.gameObject.SetActive(false);
+
         //generate random pattern for both
         opponentCards = GenerateRandomOrder();
         playerCards = new List<CardColor>(opponentCards); //Copy from opponent
@@ -88,7 +96,7 @@ public class GameManager : MonoBehaviour
         Debug.Log("Game started - Memorize the pattern!");
 
         //shuffle after 3 sek. (optional)
-        StartCoroutine(AutoShuffleAfterDelay(3f));
+        StartCoroutine(AutoShuffleAfterDelay(1.5f));
     }
 
     List<CardColor> GenerateRandomOrder()
@@ -111,6 +119,27 @@ public class GameManager : MonoBehaviour
         }
 
         return cards;
+    }
+
+    //======================================================
+    //Flip opponent cards
+    //======================================================
+
+    void FlipOpponentCards(bool hideColors)
+    {
+        Color greyColor = new Color(0.5f, 0.5f, 0.5f, 1f); //dark grey
+
+        for (int i = 0; i < 4; i++)
+        {
+            SpriteRenderer sr = opponentCardObject[i].GetComponent<SpriteRenderer>();
+
+            if (sr != null)
+            {
+                sr.color = hideColors ? greyColor : originalOpponentColors[i];
+            }
+        }
+
+        Debug.Log(hideColors ? "hidden" : "visible");
     }
 
     //===================================
@@ -192,27 +221,6 @@ public class GameManager : MonoBehaviour
     }
 
     //======================================================
-    //Flip opponent cards
-    //======================================================
-
-    void FlipOpponentCards(bool hideColors)
-    {
-        Color greyColor = new Color(0.5f, 0.5f, 0.5f, 1f); //dark grey
-
-        for (int i = 0; i < 4; i++)
-        {
-            SpriteRenderer sr = opponentCardObject[i].GetComponent<SpriteRenderer>();
-
-            if (sr != null)
-            {
-                sr.color = hideColors ? greyColor : originalOpponentColors[i];
-            }
-        }
-
-        Debug.Log(hideColors ? "hidden" : "visible");
-    }
-
-    //======================================================
     //3rd Input & replacing cards
     //======================================================
 
@@ -220,11 +228,21 @@ public class GameManager : MonoBehaviour
     {
         if (currentPhase != GamePhase.Play) return;
 
+        //Backspace to cancel selection
+        if (Input.GetKeyDown(KeyCode.Backspace))
+        {
+            if (selectedCardIndex != -1)
+            {
+                HighlightCard(selectedCardIndex, false);
+                selectedCardIndex = -1;
+            }
+        }
+
         //Keybinds 1, 2, 3, 4
-        if (Input.GetKeyDown(KeyCode.Alpha1)) HandleCardInput(0);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) HandleCardInput(1);
-        if (Input.GetKeyDown(KeyCode.Alpha3)) HandleCardInput(2);
-        if (Input.GetKeyDown(KeyCode.Alpha4)) HandleCardInput(3);
+        if (Input.GetKeyDown(KeyCode.Alpha1)) HandleSlotInput(0);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) HandleSlotInput(1);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) HandleSlotInput(2);
+        if (Input.GetKeyDown(KeyCode.Alpha4)) HandleSlotInput(3);
 
         //check with Enter
         if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
@@ -233,47 +251,34 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void HandleCardInput(int keyIndex)
+    void HandleSlotInput(int slotIndex)
     {
+        //find out which card is currently at this slot
+        int cardAtSlot = -1;
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (playerPos[i] == slotIndex)
+            {
+                cardAtSlot = i;
+                break;
+            }
+        }
+
+        if (cardAtSlot == -1) return; //should never happen!
+
         if (selectedCardIndex == -1)
         {
-            //Step 1: Select card
-            selectedCardIndex = keyIndex;
-            HighlightCard(keyIndex, true);
+            //1st: Select card on a slot
+            selectedCardIndex = cardAtSlot;
+            HighlightCard(cardAtSlot, true);
         }
         else
         {
-            //Step 2: choose new position
-            int targetSlot = keyIndex;
-
-            if (selectedCardIndex == targetSlot)
-            {
-                //same position = cancel selection
-                HighlightCard(selectedCardIndex, false);
-                selectedCardIndex = -1;
-            }
-            else
-            {
-                //find out which card is in the selected slot
-                int cardAtTarget = -1;
-
-                for (int i = 0; i < 4; i++)
-                {
-                    if (playerPos[i] == targetSlot)
-                    {
-                        cardAtTarget = i;
-                        break;
-                    }
-                }
-
-                if (cardAtTarget != -1)
-                {
-                    //swap selected cards
-                    HighlightCard(selectedCardIndex, false);
-                    StartCoroutine(SwapCards(selectedCardIndex, cardAtTarget));
-                    selectedCardIndex = -1;
-                }
-            }
+            //2nd: Swap card with a selected slot
+            HighlightCard(selectedCardIndex, false);
+            StartCoroutine(SwapCards(selectedCardIndex, cardAtSlot));
+            selectedCardIndex = -1;
         }
     }
 
@@ -365,16 +370,24 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogError("You lost!");
         }
-        else
-        {
-            //start next round after 2 sek.
-            StartCoroutine(StartNextRoundAfterDelay(3f));
-        }
+
+        StartCoroutine(RestartButtonAfterDelay(2f));
     }
 
-    IEnumerator StartNextRoundAfterDelay(float delay)
+    public void OnRestartButtonClick()
+    {
+        StartCoroutine(StartNextRoundAfterDelay());
+    }
+
+    IEnumerator RestartButtonAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
+        Restart_btn.gameObject.SetActive(true);
+    }
+
+    public IEnumerator StartNextRoundAfterDelay()
+    {
+        yield return new WaitForSeconds(2f);
         InitializeGame();
     }
 
