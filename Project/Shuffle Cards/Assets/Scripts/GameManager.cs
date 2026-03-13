@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+
 public enum CardColor
 {
     Red,
@@ -32,9 +33,6 @@ public class GameManager : MonoBehaviour
     public float opponentLifes = 4f;
     public float playerLifes = 3f;
 
-    [Header("UI Settings")]
-    public GameObject Restart_btn;
-
     //intern vars
     private List<CardColor> opponentCards = new List<CardColor>();
     private List<CardColor> playerCards = new List<CardColor>();
@@ -47,9 +45,6 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        //hide restart button
-        Restart_btn.gameObject.SetActive(false);
-
         //safe original positions of playerCards
         for (int i = 0; i < 4; i++)
         {
@@ -66,8 +61,6 @@ public class GameManager : MonoBehaviour
 
     void InitializeGame()
     {
-        Restart_btn.gameObject.SetActive(false);
-
         //generate random pattern for both
         opponentCards = GenerateRandomOrder();
         playerCards = new List<CardColor>(opponentCards); //Copy from opponent
@@ -371,23 +364,12 @@ public class GameManager : MonoBehaviour
             Debug.LogError("You lost!");
         }
 
-        StartCoroutine(RestartButtonAfterDelay(2f));
+        StartCoroutine(StartNextRoundAfterDelay(3f));
     }
 
-    public void OnRestartButtonClick()
-    {
-        StartCoroutine(StartNextRoundAfterDelay());
-    }
-
-    IEnumerator RestartButtonAfterDelay(float delay)
+    public IEnumerator StartNextRoundAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
-        Restart_btn.gameObject.SetActive(true);
-    }
-
-    public IEnumerator StartNextRoundAfterDelay()
-    {
-        yield return new WaitForSeconds(2f);
         InitializeGame();
     }
 
