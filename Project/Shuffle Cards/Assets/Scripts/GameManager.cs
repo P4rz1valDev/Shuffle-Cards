@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 
 public enum CardColor
 {
@@ -29,9 +30,19 @@ public class GameManager : MonoBehaviour
     public float shuffleAnimDur = 0.75f;
     public float cardSwapDur = 0.2f;
 
-    [Header("Lifes")]
-    public float opponentLifes = 4f;
-    public float playerLifes = 3f;
+    [Header("PLayer Settings")]
+    public float _points = 0f;
+    public float _rounds = 0f;
+    public float _currentMultiplicator = 1f;
+    public float _standartMultiplicator = 2f;
+    public float _perfectMultiplicator = 3f;
+    public float _perfectStreak = 0f;
+
+    [Header("UI References")]
+    public TextMeshProUGUI _scoreText;
+    public TextMeshProUGUI _roundsText;
+    public TextMeshProUGUI _multiText;
+    public TextMeshProUGUI _perfectText;
 
     //intern vars
     private List<CardColor> opponentCards = new List<CardColor>();
@@ -52,6 +63,8 @@ public class GameManager : MonoBehaviour
             originalCardScale[i] = playerCardObject[i].transform.localScale;
         }
 
+        _perfectText.gameObject.SetActive(false);
+
         InitializeGame();
     }
 
@@ -61,6 +74,21 @@ public class GameManager : MonoBehaviour
 
     void InitializeGame()
     {
+        _perfectText.gameObject.SetActive(false);
+
+        if (_perfectStreak == 0f)
+        {
+            _currentMultiplicator = _standartMultiplicator;
+        }
+        else
+        {
+            _currentMultiplicator = _perfectMultiplicator;
+        }
+
+        UpdateMultiplicator();
+
+        UpdateRounds();
+
         //generate random pattern for both
         opponentCards = GenerateRandomOrder();
         playerCards = new List<CardColor>(opponentCards); //Copy from opponent
@@ -337,32 +365,40 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        //oponent looses lifes for each correct card
-        opponentLifes -= correctCards;
-        opponentLifes = Mathf.Max(0, opponentLifes);
+        Debug.Log($"Result: {correctCards} right, {wrongCards} wrong");
 
-        //player looses lifes if more then 2 cards incorrect
-        if (wrongCards > 2)
+        if (correctCards == 4)
         {
-            playerLifes--;
-            playerLifes = Mathf.Max(0, playerLifes);
-            Debug.LogError("More then 2 cards wrong -> -1 life");
+            _perfectStreak++;
+
+            for (int i = 0; i < 4; i++)
+            {
+                _points += 2f;
+            }
+
+            _perfectText.gameObject.SetActive(true);
+            _currentMultiplicator = _perfectMultiplicator;
+        }
+        else
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                _points += 2f;
+            }
+
+            _perfectStreak = 0f;
+
+            if (_perfectStreak == 0f)
+            {
+                _currentMultiplicator = _standartMultiplicator;
+            }
         }
 
-        Debug.Log($"Result: {correctCards} right, {wrongCards} wrong");
-        Debug.Log($"Lifes - Enemy: {opponentLifes}, Player: {playerLifes}");
+        _points *= _currentMultiplicator;
+        UpdateScore();
+        UpdateMultiplicator();
 
         currentPhase = GamePhase.Result;
-
-        //check results
-        if (opponentLifes <= 0)
-        {
-            Debug.Log("You won!");
-        }
-        else if (playerLifes <= 0)
-        {
-            Debug.LogError("You lost!");
-        }
 
         StartCoroutine(StartNextRoundAfterDelay(3f));
     }
@@ -427,5 +463,21 @@ public class GameManager : MonoBehaviour
             playerCardObject[cardIndex].transform.localScale =
                 highlight ? originalScale * 1.15f : originalScale;
         }
+    }
+
+    void UpdateScore()
+    {
+        _scoreText.text = "Score: " + _points;
+    }
+
+    void UpdateMultiplicator()
+    {
+        _multiText.text = "Multi: " + _currentMultiplicator;
+    }
+
+    void UpdateRounds()
+    {
+        _rounds++;
+        _roundsText.text = "Rounds: " + _rounds;
     }
 }
