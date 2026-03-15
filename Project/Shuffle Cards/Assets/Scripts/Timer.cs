@@ -4,15 +4,17 @@ using TMPro;
 public class Timer : MonoBehaviour
 {
     [Header("Timer Settings")]
-    public float _timer = 40f;
+    public float _timer = 180f;
     public TextMeshProUGUI timer;
     public TextMeshProUGUI GameOver;
+    public GameObject _restartBtn;
 
     private float currentTime;
     private bool isRunning;
 
     void Start()
     {
+        _restartBtn.SetActive(false);
         GameOver.gameObject.SetActive(false);
 
         currentTime = _timer;
@@ -60,5 +62,6 @@ public class Timer : MonoBehaviour
         Time.timeScale = 0f; 
         timer.text = "0:00";
         GameOver.gameObject.SetActive(true);
+        _restartBtn.SetActive(true);
     }
 }

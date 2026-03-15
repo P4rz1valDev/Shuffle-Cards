@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public enum CardColor
 {
@@ -407,6 +408,12 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         InitializeGame();
+    }
+
+    public void Restart()
+    {
+        string currentScene = SceneManager.GetActiveScene().name;
+        SceneManager.LoadScene(currentScene);
     }
 
     //===================================
