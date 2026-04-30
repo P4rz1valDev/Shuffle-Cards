@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine.SceneManagement;
+using Unity.Hierarchy;
 
 public enum CardColor
 {
@@ -33,6 +34,7 @@ public class GameManager : MonoBehaviour
 
     [Header("PLayer Settings")]
     public float _points = 0f;
+    public float _roundPoints = 0f;
     public float _rounds = 0f;
     public float _currentMultiplicator = 1f;
     public float _standartMultiplicator = 2f;
@@ -76,6 +78,8 @@ public class GameManager : MonoBehaviour
     void InitializeGame()
     {
         _perfectText.gameObject.SetActive(false);
+
+        _roundPoints = 0f;
 
         if (_perfectStreak == 0f)
         {
@@ -374,7 +378,7 @@ public class GameManager : MonoBehaviour
 
             for (int i = 0; i < 4; i++)
             {
-                _points += 2f;
+                _roundPoints += 2f;
             }
 
             _perfectText.gameObject.SetActive(true);
@@ -384,7 +388,7 @@ public class GameManager : MonoBehaviour
         {
             for (int i = 0; i < 4; i++)
             {
-                _points += 2f;
+                _roundPoints += 2f;
             }
 
             _perfectStreak = 0f;
@@ -395,7 +399,8 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        _points *= _currentMultiplicator;
+        _roundPoints *= _currentMultiplicator;
+        _points += _roundPoints;
         UpdateScore();
         UpdateMultiplicator();
 
